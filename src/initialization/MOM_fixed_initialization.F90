@@ -42,6 +42,8 @@ use shelfwave_initialization, only : shelfwave_initialize_topography
 use Phillips_initialization, only : Phillips_initialize_topography
 use dense_water_initialization, only : dense_water_initialize_topography
 
+use MOM_netcdf, only: export_real_array_2d
+
 implicit none ; private
 
 public MOM_initialize_fixed, MOM_initialize_rotation, MOM_initialize_topography
@@ -84,6 +86,12 @@ subroutine MOM_initialize_fixed(G, US, OBC, PF, write_geom, output_dir)
   ! This also sets G%max_depth based on the input parameter MAXIMUM_DEPTH,
   ! or, if absent, is diagnosed as G%max_depth = max( G%D(:,:) )
   call MOM_initialize_topography(G%bathyT, G%max_depth, G, PF, US)
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  call export_real_array_2d('deb_bathyT.nc', G%bathyT, 'bathyT')
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ! To initialize masks, the bathymetry in halo regions must be filled in
   call pass_var(G%bathyT, G%Domain)

@@ -70,6 +70,9 @@ program MOM6
   use MOM_write_cputime,   only : write_cputime, MOM_write_cputime_init
   use MOM_write_cputime,   only : write_cputime_start_clock, write_cputime_CS
 
+  use MOM,                 only : write_CS_uvh
+  use MOM,                 only : write_CS_S, import_CS_S
+
   implicit none
 
 #include <MOM_memory.h>
@@ -199,6 +202,8 @@ program MOM6
   namelist /ocean_solo_nml/ date_init, calendar, months, days, hours, minutes, seconds, &
                             ocean_nthreads, use_hyper_thread
 
+  logical :: adjust_salt = .false.
+
   !=====================================================================
 
   call write_cputime_start_clock(write_CPU_CSp)
@@ -293,6 +298,19 @@ program MOM6
                         offline_tracer_mode=offline_tracer_mode, diag_ptr=diag, &
                         tracer_flow_CSp=tracer_flow_CSp, ice_shelf_CSp=ice_shelf_CSp, waves_CSp=Waves_CSp)
   endif
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  call write_CS_S(MOM_CSp)
+  call get_param(param_file, mod_name, "ADJUST_SALT", adjust_salt, &
+       "If true, remove initial salt anomaly.",default=.false.)
+  if (adjust_salt) then
+      call import_CS_S('INPUT/adjustedS.nc', MOM_CSp)
+  endif
+
+  call write_CS_uvh(0, MOM_CSp)
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   call get_MOM_state_elements(MOM_CSp, G=grid, GV=GV, US=US, C_p_scaled=fluxes%C_p)
   Master_Time = Time
@@ -475,6 +493,14 @@ program MOM6
     if (ns==1) then
       call finish_MOM_initialization(Time, dirs, MOM_CSp, restart_CSp)
     endif
+
+    !!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    if (ns <= 12) then
+        call write_CS_uvh(ns, MOM_CSp)
+    endif
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! This call steps the model over a time dt_forcing.
     Time1 = Master_Time ; Time = Master_Time
