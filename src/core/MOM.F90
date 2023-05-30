@@ -165,7 +165,7 @@ use MOM_offline_main,          only : offline_advection_layer, offline_transport
 use MOM_ice_shelf,             only : ice_shelf_CS, ice_shelf_query, initialize_ice_shelf
 use MOM_particles_mod,         only : particles, particles_init, particles_run, particles_save_restart, particles_end
 
-use MOM_netcdf, only: export_real_array_2d, export_real_array_3d, import_real_array_3d
+!use MOM_netcdf, only: export_real_array_2d, export_real_array_3d, import_real_array_3d
 
 implicit none ; private
 
@@ -447,8 +447,8 @@ public extract_surface_state, get_ocean_stocks
 public get_MOM_state_elements, MOM_state_is_synchronized
 public allocate_surface_state, deallocate_surface_state
 
-public write_CS_uvh, write_CS_S
-public import_CS_S
+!public write_CS_uvh, write_CS_S
+!public import_CS_S
 
 !>@{ CPU time clock IDs
 integer :: id_clock_ocean
@@ -4390,33 +4390,33 @@ end subroutine MOM_end
 !!
 !!
 
-subroutine write_CS_S(CS1)
-  type(MOM_control_struct), intent(in), target  :: CS1
-
-  call export_real_array_3d("before_finish_MOM_initialization_S.nc", CS1%tv%S, "S")
-end subroutine write_CS_S
-
-subroutine write_CS_uvh(n, CS1)
-  integer :: n
-  type(MOM_control_struct), intent(in), target  :: CS1
-  call export_real_array_3d('after_ts_'//itoa(n)//'_u.nc', CS1%u, 'u')
-  call export_real_array_3d('after_ts_'//itoa(n)//'_v.nc', CS1%v, 'v')
-  call export_real_array_3d('after_ts_'//itoa(n)//'_h.nc', CS1%h, 'h')
-end subroutine write_CS_uvh
-
-subroutine import_CS_S(file_name, CS1)
-  character(len=*), intent(in)    :: file_name
-  type(MOM_control_struct), intent(inout), target  :: CS1
-
-  call import_real_array_3d(file_name, CS1%tv%S, 'S')
-end subroutine import_CS_S
-
-function itoa(i) result(res)
-  character(:),allocatable :: res
-  integer,intent(in) :: i
-  character(range(i)+2) :: tmp
-  write(tmp,'(i0)') i
-  res = trim(tmp)
-end function
+!subroutine write_CS_S(CS1)
+!  type(MOM_control_struct), intent(in), target  :: CS1
+!
+!  call export_real_array_3d("before_finish_MOM_initialization_S.nc", CS1%tv%S, "S")
+!end subroutine write_CS_S
+!
+!subroutine write_CS_uvh(n, CS1)
+!  integer :: n
+!  type(MOM_control_struct), intent(in), target  :: CS1
+!  call export_real_array_3d('after_ts_'//itoa(n)//'_u.nc', CS1%u, 'u')
+!  call export_real_array_3d('after_ts_'//itoa(n)//'_v.nc', CS1%v, 'v')
+!  call export_real_array_3d('after_ts_'//itoa(n)//'_h.nc', CS1%h, 'h')
+!end subroutine write_CS_uvh
+!
+!subroutine import_CS_S(file_name, CS1)
+!  character(len=*), intent(in)    :: file_name
+!  type(MOM_control_struct), intent(inout), target  :: CS1
+!
+!  call import_real_array_3d(file_name, CS1%tv%S, 'S')
+!end subroutine import_CS_S
+!
+!function itoa(i) result(res)
+!  character(:),allocatable :: res
+!  integer,intent(in) :: i
+!  character(range(i)+2) :: tmp
+!  write(tmp,'(i0)') i
+!  res = trim(tmp)
+!end function
 
 end module MOM

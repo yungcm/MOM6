@@ -184,6 +184,8 @@ subroutine MOM_initialize_state(u, v, h, tv, Time, G, GV, US, PF, dirs, &
   integer :: i, j, k, is, ie, js, je, Isq, Ieq, Jsq, Jeq, nz
   integer :: isd, ied, jsd, jed, IsdB, IedB, JsdB, JedB
 
+  logical :: hack_mode 
+
   is = G%isc ; ie = G%iec ; js = G%jsc ; je = G%jec ; nz = GV%ke
   Isq = G%IscB ; Ieq = G%IecB ; Jsq = G%JscB ; Jeq = G%JecB
   isd = G%isd ; ied = G%ied ; jsd = G%jsd ; jed = G%jed
@@ -430,6 +432,11 @@ subroutine MOM_initialize_state(u, v, h, tv, Time, G, GV, US, PF, dirs, &
        "at the depth where the hydrostatic pressure matches the imposed "//&
        "surface pressure which is read from file.", default=.false., &
        do_not_log=just_read)
+
+  call get_param(PF, mdl, "HACK_MODE", hack_mode, &
+       "HACK MODE", default=.false., &
+       do_not_log=just_read)
+
   if (depress_sfc .and. trim_ic_for_p_surf) call MOM_error(FATAL, "MOM_initialize_state: "//&
            "DEPRESS_INITIAL_SURFACE and TRIM_IC_FOR_P_SURF are exclusive and cannot both be True")
 
@@ -442,7 +449,9 @@ subroutine MOM_initialize_state(u, v, h, tv, Time, G, GV, US, PF, dirs, &
   elseif (trim_ic_for_p_surf) then
     call trim_for_ice(PF, G, GV, US, ALE_CSp, tv, h, just_read=just_read)
   elseif (new_sim .and. use_ice_shelf .and. present(mass_shelf)) then
-    call calc_sfc_displacement(PF, G, GV, US, mass_shelf, tv, h)
+    if (hack_mode .eqv. .false.) then
+       call calc_sfc_displacement(PF, G, GV, US, mass_shelf, tv, h)
+    endif
   endif
 
   ! Perhaps we want to run the regridding coordinate generator for multiple

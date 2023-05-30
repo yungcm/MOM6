@@ -42,7 +42,7 @@ use shelfwave_initialization, only : shelfwave_initialize_topography
 use Phillips_initialization, only : Phillips_initialize_topography
 use dense_water_initialization, only : dense_water_initialize_topography
 
-use MOM_netcdf, only: export_real_array_2d
+!use MOM_netcdf, only: export_real_array_2d
 
 implicit none ; private
 
@@ -89,7 +89,7 @@ subroutine MOM_initialize_fixed(G, US, OBC, PF, write_geom, output_dir)
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  call export_real_array_2d('deb_bathyT.nc', G%bathyT, 'bathyT')
+  !call export_real_array_2d('deb_bathyT.nc', G%bathyT, 'bathyT')
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

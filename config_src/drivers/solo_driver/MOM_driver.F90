@@ -70,8 +70,8 @@ program MOM6
   use MOM_write_cputime,   only : write_cputime, MOM_write_cputime_init
   use MOM_write_cputime,   only : write_cputime_start_clock, write_cputime_CS
 
-  use MOM,                 only : write_CS_uvh
-  use MOM,                 only : write_CS_S, import_CS_S
+  !use MOM,                 only : write_CS_uvh
+  !use MOM,                 only : write_CS_S, import_CS_S
 
   implicit none
 
@@ -301,14 +301,14 @@ program MOM6
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  call write_CS_S(MOM_CSp)
-  call get_param(param_file, mod_name, "ADJUST_SALT", adjust_salt, &
-       "If true, remove initial salt anomaly.",default=.false.)
-  if (adjust_salt) then
-      call import_CS_S('INPUT/adjustedS.nc', MOM_CSp)
-  endif
-
-  call write_CS_uvh(0, MOM_CSp)
+  !call write_CS_S(MOM_CSp)
+  !call get_param(param_file, mod_name, "ADJUST_SALT", adjust_salt, &
+  !     "If true, remove initial salt anomaly.",default=.false.)
+  !if (adjust_salt) then
+  !    call import_CS_S('INPUT/adjustedS.nc', MOM_CSp)
+  !endif
+  !
+  !call write_CS_uvh(0, MOM_CSp)
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -496,9 +496,9 @@ program MOM6
 
     !!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    if (ns <= 12) then
-        call write_CS_uvh(ns, MOM_CSp)
-    endif
+    !if (ns <= 12) then
+    !    call write_CS_uvh(ns, MOM_CSp)
+    !endif
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
