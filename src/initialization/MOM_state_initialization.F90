@@ -454,6 +454,9 @@ subroutine MOM_initialize_state(u, v, h, tv, Time, G, GV, US, PF, dirs, &
     endif
   endif
 
+  call ISOMIP_initialize_temperature_salinity (tv%T, tv%S, h, &
+                                  depth_tot, G, GV, US, PF, eos, just_read=just_read)
+
   ! Perhaps we want to run the regridding coordinate generator for multiple
   ! iterations here so the initial grid is consistent with the coordinate
   if (useALE) then
@@ -1034,6 +1037,8 @@ subroutine depress_surface(h, G, GV, US, param_file, tv, just_read, z_top_shelf)
   integer :: i, j, k, is, ie, js, je, nz
   logical :: use_z_shelf
 
+  print *, "depress_surface()"
+
   is = G%isc ; ie = G%iec ; js = G%jsc ; je = G%jec ; nz = GV%ke
 
   use_z_shelf = present(z_top_shelf)
@@ -1136,6 +1141,8 @@ subroutine trim_for_ice(PF, G, GV, US, ALE_CSp, tv, h, just_read)
                                   ! forms of the same remapping expressions.
   logical :: use_remapping ! If true, remap the initial conditions.
   type(remapping_CS), pointer :: remap_CS => NULL()
+
+  print *, 'trim_for_ice()'
 
   call get_param(PF, mdl, "SURFACE_PRESSURE_FILE", p_surf_file, &
                  "The initial condition file for the surface pressure exerted by ice.", &
@@ -1245,6 +1252,8 @@ subroutine calc_sfc_displacement(PF, G, GV, US, mass_shelf, tv, h)
   integer :: is, ie, js, je, k, nz, i, j, max_iter, iter
 
   is = G%isc ; ie = G%iec ; js = G%jsc ; je = G%jec ; nz = GV%ke
+
+  print *, 'calc_sfc_displacement()'
 
   call get_param(PF, mdl, "ICE_SHELF_INITIALIZATION_Z_TOLERANCE", tol, &
                 "A initialization tolerance for the calculation of the static "// &

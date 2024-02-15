@@ -165,7 +165,7 @@ use MOM_offline_main,          only : offline_advection_layer, offline_transport
 use MOM_ice_shelf,             only : ice_shelf_CS, ice_shelf_query, initialize_ice_shelf
 use MOM_particles_mod,         only : particles, particles_init, particles_run, particles_save_restart, particles_end
 
-!use MOM_netcdf, only: export_real_array_2d, export_real_array_3d, import_real_array_3d
+use MOM_netcdf, only: export_real_array_2d, export_real_array_3d, import_real_array_3d
 
 implicit none ; private
 
@@ -2756,6 +2756,8 @@ subroutine initialize_MOM(Time, Time_init, param_file, dirs, CS, restart_CSp, &
           param_file, dirs, restart_CSp, CS%ALE_CSp, CS%tracer_Reg, &
           sponge_in_CSp, ALE_sponge_in_CSp, oda_incupd_in_CSp, OBC_in, Time_in, &
           frac_shelf_h=frac_shelf_in, mass_shelf = mass_shelf_in)
+      call export_real_array_3d('after_MOM_initialize_state_h.nc',CS%h,'h')
+      call export_real_array_3d('after_MOM_initialize_state_S.nc',CS%tv%S,'S')
     else
       call MOM_initialize_state(u_in, v_in, h_in, CS%tv, Time, G_in, GV, US, &
           param_file, dirs, restart_CSp, CS%ALE_CSp, CS%tracer_Reg, &
@@ -2882,10 +2884,17 @@ subroutine initialize_MOM(Time, Time_init, param_file, dirs, CS, restart_CSp, &
       call ALE_regrid(G, GV, US, CS%h, h_new, dzRegrid, CS%tv, CS%ALE_CSp, PCM_cell=PCM_cell)
     endif
 
+    call export_real_array_3d("h_old.nc", CS%h, 'h')
+    call export_real_array_3d("h_new.nc", h_new, 'h')
+
+    call export_real_array_3d('before_ALE_remap_tracers_S.nc',CS%tracer_Reg%Tr(2)%t,'S')
+
     if (callTree_showQuery()) call callTree_waypoint("new grid generated")
     ! Remap all variables from the old grid h onto the new grid h_new
     call ALE_remap_tracers(CS%ALE_CSp, G, GV, CS%h, h_new, CS%tracer_Reg, CS%debug, PCM_cell=PCM_cell)
     call ALE_remap_velocities(CS%ALE_CSp, G, GV, CS%h, h_new, CS%u, CS%v, CS%OBC, dzRegrid, debug=CS%debug)
+
+    call export_real_array_3d('after_ALE_remap_tracers_S.nc',CS%tracer_Reg%Tr(2)%t,'S')
 
     ! Replace the old grid with new one.  All remapping must be done at this point.
     !$OMP parallel do default(shared)
@@ -2985,6 +2994,7 @@ subroutine initialize_MOM(Time, Time_init, param_file, dirs, CS, restart_CSp, &
     call porous_barriers_init(Time, US, param_file, diag, CS%por_bar_CS)
 
   if (CS%split) then
+    print *, 'MOM split'
     allocate(eta(SZI_(G),SZJ_(G)), source=0.0)
     call initialize_dyn_split_RK2(CS%u, CS%v, CS%h, CS%uh, CS%vh, eta, Time, &
               G, GV, US, param_file, diag, CS%dyn_split_RK2_CSp, restart_CSp, &
@@ -3200,6 +3210,9 @@ subroutine finish_MOM_initialization(Time, dirs, CS, restart_CSp)
     call restart_registry_lock(restart_CSp_tmp, unlocked=.true.)
     allocate(z_interface(SZI_(G),SZJ_(G),SZK_(GV)+1))
     call find_eta(CS%h, CS%tv, G, GV, US, z_interface, dZref=G%Z_ref)
+    print *, 'MOM eta diag'
+    call export_real_array_3d("h_to_eta.nc", CS%h, 'h')
+    call export_real_array_3d("eta.nc", z_interface, 'eta')
     call register_restart_field(z_interface, "eta", .true., restart_CSp_tmp, &
                                 "Interface heights", "meter", z_grid='i', conversion=US%Z_to_m)
     ! NOTE: write_ic=.true. routes routine to fms2 IO write_initial_conditions interface
@@ -3211,6 +3224,8 @@ subroutine finish_MOM_initialization(Time, dirs, CS, restart_CSp)
 
   call write_energy(CS%u, CS%v, CS%h, CS%tv, Time, 0, G, GV, US, &
                     CS%sum_output_CSp, CS%tracer_flow_CSp)
+
+  call export_real_array_3d("h.nc", CS%h, "h")
 
   call callTree_leave("finish_MOM_initialization()")
   call cpu_clock_end(id_clock_init)
@@ -3311,6 +3326,8 @@ subroutine set_restart_fields(GV, US, param_file, CS, restart_CSp)
     call register_restart_field(CS%tv%S, "Salt", .true., restart_CSp, &
                                 "Salinity", "PPT", conversion=US%S_to_ppt)
 
+  print *, 'MOM h diag'
+  !call export_real_array_3d("h.nc", CS%h, "h")
   call register_restart_field(CS%h, "h", .true., restart_CSp, &
                               "Layer Thickness", thickness_units, conversion=GV%H_to_MKS)
 

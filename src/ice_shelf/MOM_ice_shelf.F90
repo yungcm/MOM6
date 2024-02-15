@@ -62,6 +62,8 @@ use MOM_spatial_means, only : global_area_integral
 use MOM_checksums, only : hchksum, qchksum, chksum, uchksum, vchksum, uvchksum
 use MOM_interpolate, only : init_external_field, time_interp_external, time_interp_external_init
 
+use MOM_netcdf, only : export_real_array_2d
+
 implicit none ; private
 
 #include <MOM_memory.h>
@@ -261,7 +263,8 @@ subroutine shelf_calc_flux(sfc_state_in, fluxes_in, Time, time_step_in, CS)
                !! This is computed as part of the ISOMIP diagnostics.
   real :: time_step !< Length of time over which these fluxes will be applied [T ~> s].
   real, parameter :: VK    = 0.40 !< Von Karman's constant - dimensionless
-  real :: ZETA_N = 0.052 !> The fraction of the boundary layer over which the
+  !real :: ZETA_N = 0.052 !> The fraction of the boundary layer over which the
+  real :: ZETA_N = 0.13 !> The fraction of the boundary layer over which the
                !! viscosity is linearly increasing [nondim]. (Was 1/8. Why?)
   real, parameter :: RC    = 0.20     ! critical flux Richardson number.
   real :: I_ZETA_N !< The inverse of ZETA_N [nondim].
@@ -524,6 +527,9 @@ subroutine shelf_calc_flux(sfc_state_in, fluxes_in, Time, time_step_in, CS)
             wB_flux = dB_dS * (dS_ustar * I_Gam_S) + dB_dT * wT_flux
 
             if (wB_flux < 0.0) then
+
+            print *, 'shelf_calc_flux() wB_flux < 0 (melting)'
+
               ! The buoyancy flux is stabilizing and will reduce the turbulent
               ! fluxes, and iteration is required.
               n_star_term = (ZETA_N/RC) * (hBL_neut * VK) / (ustar_h)**3
@@ -563,8 +569,13 @@ subroutine shelf_calc_flux(sfc_state_in, fluxes_in, Time, time_step_in, CS)
                 dDwB_dwB_in = dG_dwB * (dB_dS * (dS_ustar * I_Gam_S**2) + &
                                         dB_dT * (dT_ustar * I_Gam_T**2)) - 1.0
                 ! This is Newton's method without any bounds.  Should bounds be needed?
-                wB_flux_new = wB_flux - (wB_flux_new - wB_flux) / dDwB_dwB_in
+                !wB_flux_new = wB_flux - (wB_flux_new - wB_flux) / dDwB_dwB_in
+                wB_flux = wB_flux - (wB_flux_new - wB_flux) / dDwB_dwB_in
               enddo !it3
+
+              if (it3 > 1) then
+                print *, 'shelf_calc_flux() it3 (bug) = ', it3
+              endif
             endif
 
             ISS%tflux_ocn(i,j)  = RhoCp * wT_flux
@@ -613,6 +624,7 @@ subroutine shelf_calc_flux(sfc_state_in, fluxes_in, Time, time_step_in, CS)
               Sbdry_it = (sfc_state%sss(i,j) * mass_exch + CS%Salin_ice * ISS%water_flux(i,j)) / &
                          (mass_exch + ISS%water_flux(i,j))
               dS_it = Sbdry_it - Sbdry(i,j)
+              !print *, 'dS_it = ', dS_it
               if (abs(dS_it) < 1.0e-4*(0.5*(sfc_state%sss(i,j) + Sbdry(i,j) + 1.0e-10*US%ppt_to_S))) exit
 
               if (dS_it < 0.0) then ! Sbdry is now the upper bound.
@@ -636,8 +648,12 @@ subroutine shelf_calc_flux(sfc_state_in, fluxes_in, Time, time_step_in, CS)
                 Sbdry(i,j) = Sbdry_it
               endif ! Sb_min_set
 
-              Sbdry(i,j) = Sbdry_it
+              !Sbdry(i,j) = Sbdry_it
             endif ! CS%find_salt_root
+         
+            !if (it1 > 1) then
+               print *, 'shelf_calc_flux() it1 = ', it1
+            !endif
 
           enddo !it1
           ! Check for non-convergence and/or non-boundedness?
@@ -1091,6 +1107,8 @@ subroutine add_shelf_flux(G, US, CS, sfc_state, fluxes)
     if (associated(fluxes%salt_flux)) &
       fluxes%salt_flux(i,j) = frac_shelf * ISS%salt_flux(i,j)*CS%flux_factor + frac_open * fluxes%salt_flux(i,j)
   endif ; enddo ; enddo
+
+  call export_real_array_2d("water_flux.nc", ISS%water_flux, "water_flux")
 
   if (CS%debug) then
     call hchksum(ISS%water_flux, "water_flux add shelf fluxes", G%HI, haloshift=0, scale=US%RZ_T_to_kg_m2s)

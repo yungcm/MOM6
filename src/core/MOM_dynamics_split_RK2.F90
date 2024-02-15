@@ -70,6 +70,8 @@ use MOM_verticalGrid,          only : verticalGrid_type, get_thickness_units
 use MOM_verticalGrid,          only : get_flux_units, get_tr_flux_units
 use MOM_wave_interface,        only: wave_parameters_CS, Stokes_PGF
 
+use MOM_netcdf, only: export_real_array_2d, export_real_array_3d
+
 implicit none ; private
 
 #include <MOM_memory.h>
@@ -1250,6 +1252,8 @@ subroutine initialize_dyn_split_RK2(u, v, h, uh, vh, eta, Time, G, GV, US, param
   logical :: debug_truncations
   logical :: read_uv, read_h2
 
+  real :: e_244_24
+
   integer :: i, j, k, is, ie, js, je, isd, ied, jsd, jed, nz
   integer :: IsdB, IedB, JsdB, JedB
   is   = G%isc  ; ie   = G%iec  ; js   = G%jsc  ; je   = G%jec ; nz = GV%ke
@@ -1390,6 +1394,7 @@ subroutine initialize_dyn_split_RK2(u, v, h, uh, vh, eta, Time, G, GV, US, param
 
   eta_rest_name = "sfc" ; if (.not.GV%Boussinesq) eta_rest_name = "p_bot"
   if (.not. query_initialized(CS%eta, trim(eta_rest_name), restart_CS)) then
+    print *, 'initialize_dyn_() sfc diag'
     ! Estimate eta based on the layer thicknesses - h.  With the Boussinesq
     ! approximation, eta is the free surface height anomaly, while without it
     ! eta is the mass of ocean per unit area.  eta always has the same
@@ -1398,9 +1403,32 @@ subroutine initialize_dyn_split_RK2(u, v, h, uh, vh, eta, Time, G, GV, US, param
     if (GV%Boussinesq) then
       do j=js,je ; do i=is,ie ; CS%eta(i,j) = -GV%Z_to_H * G%bathyT(i,j) ; enddo ; enddo
     endif
+
+    !print *, 'bathy(244,24) = ', CS%eta(244,24)
+    call export_real_array_2d("bathy_split_init.nc", CS%eta, "bathy")
+    !print *, 'bathy(244,24) + SUM(h(244,24,:) = ', CS%eta(244,24) + SUM(h(244,24,:))
+
+    !e_244_24 = CS%eta(244,24)
+    !print *, 'e_244_24 = ', e_244_24
+    !do k=1,nz
+    !  e_244_24 = e_244_24 + h(244,24,k)
+    !  print *, 'e_244_24 = ', e_244_24
+    !enddo
+
+    !do j=js,je ; do i=is,ie
+    !  CS%eta(i,j) = CS%eta(i,j) + SUM(h(i,j,:))
+    !enddo ; enddo
+
     do k=1,nz ; do j=js,je ; do i=is,ie
       CS%eta(i,j) = CS%eta(i,j) + h(i,j,k)
     enddo ; enddo ; enddo
+
+    !print *, 'h(244,24,:) = ', h(244,24,:)
+    !print *, 'SUM(h(244,24,:)) = ', SUM(h(244,24,:))
+    !print *, 'eta(244,24) = ', CS%eta(244,24)
+    call export_real_array_3d("h_split_init.nc", h, "h")
+    call export_real_array_2d("sfc.nc", CS%eta, "sfc")
+
     call set_initialized(CS%eta, trim(eta_rest_name), restart_CS)
   endif
   ! Copy eta into an output array.

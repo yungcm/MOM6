@@ -64,6 +64,8 @@ subroutine find_eta_3d(h, tv, G, GV, US, eta, eta_bt, halo_size, dZref)
                     ! dZ_ref is 0 unless the optional argument dZref is present.
   integer i, j, k, isv, iev, jsv, jev, nz, halo
 
+  !print *, 'find eta 3d'
+
   halo = 0 ; if (present(halo_size)) halo = max(0,halo_size)
 
   isv = G%isc-halo ; iev = G%iec+halo ; jsv = G%jsc-halo ; jev = G%jec+halo
@@ -81,9 +83,18 @@ subroutine find_eta_3d(h, tv, G, GV, US, eta, eta_bt, halo_size, dZref)
 
   if (GV%Boussinesq) then
     !$OMP do
+
     do j=jsv,jev ; do k=nz,1,-1 ; do i=isv,iev
       eta(i,j,K) = eta(i,j,K+1) + h(i,j,k)*GV%H_to_Z
     enddo ; enddo ; enddo
+
+    !do j=jsv,jev ; do i=isv,iev
+    !  eta(i,j,1) = eta(i,j,nz+1) + SUM(h(i,j,:))*GV%H_to_Z
+    !enddo ; enddo 
+
+    !do j=jsv,jev ; do k=nz,1,-1 ; do i=isv,iev
+    !  eta(i,j,K) = eta(i,j,K+1) + h(i,j,k)*GV%H_to_Z
+    !enddo ; enddo ; enddo
     if (present(eta_bt)) then
       ! Dilate the water column to agree with the free surface height
       ! that is used for the dynamics.
